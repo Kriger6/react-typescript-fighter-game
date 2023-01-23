@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 
 interface Chars {
     position: { x: number, y: number }
     velocity: { x: number, y: number }
     color: string
     isAttacking: boolean
-    offset: {x: number, y: number}
+    offset: { x: number, y: number }
 }
 
 interface Keys {
@@ -44,8 +44,6 @@ const Canvas = () => {
         }
     }
 
-    // let lastKey: string
-
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
     useEffect(() => {
@@ -55,7 +53,7 @@ const Canvas = () => {
         }
         canvas.width = 1024
         canvas.height = 576
-        const ctx = canvas?.getContext('2d')
+        const ctx = canvas.getContext('2d')
         ctx?.fillRect(0, 0, canvas?.width, canvas?.height)
         setC(ctx)
     }, [])
@@ -85,10 +83,10 @@ const Canvas = () => {
             c.fillStyle = this.color
             c.fillRect(this.position.x, this.position.y, this.width, this.height)
 
-            // if (this.isAttacking) {
-            // }
-            c.fillStyle = 'green'
-            c.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
+            if (this.isAttacking) {
+                c.fillStyle = 'green'
+                c.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
+            }
         }
 
         this.attack = () => {
@@ -100,7 +98,7 @@ const Canvas = () => {
 
         this.update = () => {
             this.draw()
-            
+
             this.attackBox.position.x = this.position.x + this.attackBox.offset.x
             this.attackBox.position.y = this.position.y
 
@@ -117,7 +115,7 @@ const Canvas = () => {
     }
 
 
-    const player = new (Sprite as any)({
+    const player = new (Sprite as any)(useMemo(() => ({
         position: {
             x: 0,
             y: 0
@@ -131,10 +129,10 @@ const Canvas = () => {
             x: 0,
             y: 0
         }
-    }
+    }), [])
     )
 
-    const enemy = new (Sprite as any)({
+    const enemy = new (Sprite as any)(useMemo(() => ({
         position: {
             x: 400,
             y: 100
@@ -148,9 +146,16 @@ const Canvas = () => {
             x: -50,
             y: 0
         }
-    }
+    }), [])
     )
 
+    function rectangularCollision({ rectangle1, rectangle2 }: any) {
+        return (rectangle1.attackBox.position.x + rectangle1.attackBox.width >= rectangle2.position.x &&
+            rectangle1.attackBox.position.x <= rectangle2.position.x + rectangle2.width &&
+            rectangle1.attackBox.position.y + rectangle1.attackBox.height >= rectangle2.position.y &&
+            rectangle1.attackBox.position.y <= rectangle2.position.y + rectangle2.height
+        )
+    }
 
     function animate() {
         window.requestAnimationFrame(animate)
@@ -177,12 +182,21 @@ const Canvas = () => {
 
         // COLLISION DETECTION
 
-        if (player.attackBox.position.x + player.attackBox.width >= enemy.position.x &&
-            player.attackBox.position.x <= enemy.position.x + enemy.width &&
-            player.attackBox.position.y + player.attackBox.height >= enemy.position.y &&
-            player.attackBox.position.y <= enemy.position.y + enemy.height &&
+        if (rectangularCollision({
+            rectangle1: player,
+            rectangle2: enemy
+        }) &&
             player.isAttacking) {
             player.isAttacking = false
+            console.log("go");
+
+        }
+        if (rectangularCollision({
+            rectangle1: enemy,
+            rectangle2: player
+        }) &&
+            enemy.isAttacking) {
+            enemy.isAttacking = false
             console.log("go");
 
         }
@@ -192,7 +206,7 @@ const Canvas = () => {
 
     animate()
 
-    window.addEventListener('keydown', (e) => {
+    const keyDown = useCallback((e: any) => {
         switch (e.key) {
             case 'd':
                 keys.d.pressed = true
@@ -208,6 +222,9 @@ const Canvas = () => {
             case ' ':
                 player.attack()
                 break;
+            case 'Enter':
+                enemy.attack()
+                break;
             case 'ArrowRight':
                 keys.ArrowRight.pressed = true
                 enemy.lastEnemyKey = 'ArrowRight'
@@ -222,9 +239,10 @@ const Canvas = () => {
 
         }
 
-    })
+    }, [enemy, keys.ArrowLeft, keys.ArrowRight, keys.a, keys.d, player])
 
-    window.addEventListener('keyup', (e) => {
+
+    const keyUp = useCallback((e: any) => {
         switch (e.key) {
             case 'd':
                 keys.d.pressed = false
@@ -239,14 +257,34 @@ const Canvas = () => {
                 keys.ArrowLeft.pressed = false
                 break;
         }
+    }, [keys.ArrowLeft, keys.ArrowRight, keys.a, keys.d])
 
-    })
+    useEffect(() => {
+        window.addEventListener('keydown', keyDown)
+        window.addEventListener('keyup', keyUp)
+
+        return () => {
+            window.removeEventListener('keydown', keyDown)
+            window.removeEventListener('keyup', keyUp)
+        }
+    }, [keyDown, keyUp])
+
     return (
-        <canvas
-            ref={canvasRef}
-            width="1024"
-            height="576"
-        />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div style={{ position: 'absolute', display: 'flex', width: '100%', alignItems: 'center', padding: '20px' }}>
+                <div style={{ background: 'yellow', width: '100%', height: '30px' }}></div>
+                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0' }}></div>
+                <div style={{position: 'relative', height: '30px', width: '100%'}}>
+                    <div style={{ background: 'yellow', height: '30px' }}></div>
+                    <div style={{ background: 'blue', position: 'absolute', top: '0', left: '0', right: '0', bottom: '0'}}></div>
+                </div>
+            </div>
+            <canvas
+                ref={canvasRef}
+                width="1024"
+                height="576"
+            />
+        </div>
     )
 }
 
