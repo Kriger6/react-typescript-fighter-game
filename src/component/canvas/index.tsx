@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import HealthBar from './healt_bar'
 
 interface Chars {
     position: { x: number, y: number }
@@ -25,6 +26,7 @@ interface Keys {
 
 const Canvas = () => {
     const [c, setC] = useState<CanvasRenderingContext2D | null>(null)
+    const [enemyHealth, setEnemyHealth] = useState<number>(100)
     const CANVAS_WIDTH: number = 1024
     const CANVAS_HEIGHT: number = 576
     const GRAVITY: number = 0.7
@@ -59,7 +61,9 @@ const Canvas = () => {
     }, [])
 
 
-    function Sprite(this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string,): void {
+    
+    
+    const Sprite = useCallback(function(this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string,): void {
         this.c = c
         this.position = position
         this.velocity = velocity
@@ -77,6 +81,7 @@ const Canvas = () => {
         }
         this.color = color
         this.isAttacking = isAttacking
+        this.health = 100
 
         this.draw = () => {
             if (!c) return
@@ -98,24 +103,24 @@ const Canvas = () => {
 
         this.update = () => {
             this.draw()
-
+            
             this.attackBox.position.x = this.position.x + this.attackBox.offset.x
             this.attackBox.position.y = this.position.y
-
+            
             this.position.x += this.velocity.x
             this.position.y += this.velocity.y
-
-
+            
+            
             if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT) {
                 this.velocity.y = 0
-
+                
             } else this.velocity.y += GRAVITY
         }
 
-    }
+    }, [c])
 
 
-    const player = new (Sprite as any)(useMemo(() => ({
+    const player = useMemo(() => (new (Sprite as any)({
         position: {
             x: 0,
             y: 0
@@ -129,10 +134,10 @@ const Canvas = () => {
             x: 0,
             y: 0
         }
-    }), [])
-    )
+    })), [Sprite])
+    
 
-    const enemy = new (Sprite as any)(useMemo(() => ({
+    const enemy = useMemo(() => (new (Sprite as any)({
         position: {
             x: 400,
             y: 100
@@ -146,8 +151,7 @@ const Canvas = () => {
             x: -50,
             y: 0
         }
-    }), [])
-    )
+    })), [Sprite])
 
     function rectangularCollision({ rectangle1, rectangle2 }: any) {
         return (rectangle1.attackBox.position.x + rectangle1.attackBox.width >= rectangle2.position.x &&
@@ -157,6 +161,7 @@ const Canvas = () => {
         )
     }
 
+
     function animate() {
         window.requestAnimationFrame(animate)
         if (!c) return
@@ -164,6 +169,7 @@ const Canvas = () => {
         c.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         player.update()
         enemy.update()
+        
 
         player.velocity.x = 0
         enemy.velocity.x = 0
@@ -188,7 +194,9 @@ const Canvas = () => {
         }) &&
             player.isAttacking) {
             player.isAttacking = false
-            console.log("go");
+            enemy.health -= 20
+            setEnemyHealth(prevState => prevState - 20)
+            console.log("go", enemy.health);
 
         }
         if (rectangularCollision({
@@ -201,11 +209,12 @@ const Canvas = () => {
 
         }
 
-
+        
     }
 
     animate()
 
+    
     const keyDown = useCallback((e: any) => {
         switch (e.key) {
             case 'd':
@@ -275,8 +284,7 @@ const Canvas = () => {
                 <div style={{ background: 'yellow', width: '100%', height: '30px' }}></div>
                 <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0' }}></div>
                 <div style={{position: 'relative', height: '30px', width: '100%'}}>
-                    <div style={{ background: 'yellow', height: '30px' }}></div>
-                    <div style={{ background: 'blue', position: 'absolute', top: '0', left: '0', right: '0', bottom: '0'}}></div>
+                    <HealthBar health={enemyHealth} />
                 </div>
             </div>
             <canvas
