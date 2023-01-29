@@ -25,13 +25,17 @@ interface Keys {
 }
 
 const Canvas = () => {
-    const [c, setC] = useState<CanvasRenderingContext2D | null>(null)
     const [enemyHealth, setEnemyHealth] = useState<number>(100)
+    const [playerHealth, setPlayerHealth] = useState<number>(100)
+    const [time, setTime] = useState<number>(10)
     const CANVAS_WIDTH: number = 1024
     const CANVAS_HEIGHT: number = 576
     const GRAVITY: number = 0.7
+    
+    const timerRef = useRef<any>()
+    const onLoadRef = useRef<boolean>(false)
 
-    const keys: Keys = {
+    const keys: Keys = useMemo(() => ({
         a: {
             pressed: false
         },
@@ -44,27 +48,10 @@ const Canvas = () => {
         ArrowRight: {
             pressed: false
         }
-    }
+    }), [])
 
-    const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const Sprite = useCallback(function (this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string,): void {
 
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) {
-            return
-        }
-        canvas.width = 1024
-        canvas.height = 576
-        const ctx = canvas.getContext('2d')
-        ctx?.fillRect(0, 0, canvas?.width, canvas?.height)
-        setC(ctx)
-    }, [])
-
-
-    
-    
-    const Sprite = useCallback(function(this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string,): void {
-        this.c = c
         this.position = position
         this.velocity = velocity
         this.width = 50
@@ -84,13 +71,13 @@ const Canvas = () => {
         this.health = 100
 
         this.draw = () => {
-            if (!c) return
-            c.fillStyle = this.color
-            c.fillRect(this.position.x, this.position.y, this.width, this.height)
+            if (!contextRef.current) return
+            contextRef.current.fillStyle = this.color
+            contextRef.current.fillRect(this.position.x, this.position.y, this.width, this.height)
 
             if (this.isAttacking) {
-                c.fillStyle = 'green'
-                c.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
+                contextRef.current.fillStyle = 'green'
+                contextRef.current.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
             }
         }
 
@@ -103,22 +90,21 @@ const Canvas = () => {
 
         this.update = () => {
             this.draw()
-            
+
             this.attackBox.position.x = this.position.x + this.attackBox.offset.x
             this.attackBox.position.y = this.position.y
-            
+
             this.position.x += this.velocity.x
             this.position.y += this.velocity.y
-            
-            
+
+
             if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT) {
                 this.velocity.y = 0
-                
+
             } else this.velocity.y += GRAVITY
         }
 
-    }, [c])
-
+    }, [])
 
     const player = useMemo(() => (new (Sprite as any)({
         position: {
@@ -135,7 +121,44 @@ const Canvas = () => {
             y: 0
         }
     })), [Sprite])
+
+
+
+    const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const contextRef = useRef<CanvasRenderingContext2D | null>(null)
+
+    useEffect(() => {
+        const canvas = canvasRef.current
+        if (!canvas) {
+            return
+        }
+        canvas.width = 1024
+        canvas.height = 576
+        const ctx = canvas.getContext('2d')
+        ctx?.fillRect(0, 0, canvas?.width, canvas?.height)
+        contextRef.current = ctx
+        onLoadRef.current = true
+    }, [])
+
+    if (onLoadRef.current === false) {
+        animate()
+    }
+
+    const updateTime = useCallback(() => {
+        if (time > 0) {
+            timerRef.current = setInterval(() => {
+                setTime(prevState => prevState - 1)
+            }, 1000)
+        } else {
+            clearInterval(timerRef.current)
+        }
+    }, [time])
     
+    useEffect(() => {
+        updateTime()
+
+        return () => clearInterval(timerRef.current)
+    }, [time, updateTime])
 
     const enemy = useMemo(() => (new (Sprite as any)({
         position: {
@@ -163,26 +186,26 @@ const Canvas = () => {
 
 
     function animate() {
-        window.requestAnimationFrame(animate)
-        if (!c) return
-        c.fillStyle = 'black'
-        c.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+        requestAnimationFrame(animate)
+        if (!contextRef.current) return
+        contextRef.current.fillStyle = 'black'
+        contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         player.update()
         enemy.update()
-        
+
 
         player.velocity.x = 0
         enemy.velocity.x = 0
 
-        if (keys.d.pressed === true && player.lastKey === 'd') {
+        if (keys?.d.pressed === true && player.lastKey === 'd') {
             player.velocity.x = 5
-        } else if (keys.a.pressed === true && player.lastKey === 'a') {
+        } else if (keys?.a.pressed === true && player.lastKey === 'a') {
             player.velocity.x = -5
         }
 
-        if (keys.ArrowRight.pressed === true && enemy.lastEnemyKey === 'ArrowRight') {
+        if (keys?.ArrowRight.pressed === true && enemy.lastEnemyKey === 'ArrowRight') {
             enemy.velocity.x = 5
-        } else if (keys.ArrowLeft.pressed === true && enemy.lastEnemyKey === 'ArrowLeft') {
+        } else if (keys?.ArrowLeft.pressed === true && enemy.lastEnemyKey === 'ArrowLeft') {
             enemy.velocity.x = -5
         }
 
@@ -196,7 +219,6 @@ const Canvas = () => {
             player.isAttacking = false
             enemy.health -= 20
             setEnemyHealth(prevState => prevState - 20)
-            console.log("go", enemy.health);
 
         }
         if (rectangularCollision({
@@ -205,68 +227,72 @@ const Canvas = () => {
         }) &&
             enemy.isAttacking) {
             enemy.isAttacking = false
-            console.log("go");
+            player.health -= 20
+            setPlayerHealth(prevState => prevState - 20)
 
         }
 
-        
+
     }
 
-    animate()
 
-    
+
     const keyDown = useCallback((e: any) => {
-        switch (e.key) {
-            case 'd':
-                keys.d.pressed = true
-                player.lastKey = 'd'
-                break;
-            case 'a':
-                keys.a.pressed = true
-                player.lastKey = 'a'
-                break;
-            case 'w':
-                player.velocity.y = -20
-                break;
-            case ' ':
-                player.attack()
-                break;
-            case 'Enter':
-                enemy.attack()
-                break;
-            case 'ArrowRight':
-                keys.ArrowRight.pressed = true
-                enemy.lastEnemyKey = 'ArrowRight'
-                break;
-            case 'ArrowLeft':
-                keys.ArrowLeft.pressed = true
-                enemy.lastEnemyKey = 'ArrowLeft'
-                break;
-            case 'ArrowUp':
-                enemy.velocity.y = -20
-                break;
+        if (keys) {
+            switch (e.key) {
+                case 'd':
+                    keys.d.pressed = true
+                    player.lastKey = 'd'
+                    break;
+                case 'a':
+                    keys.a.pressed = true
+                    player.lastKey = 'a'
+                    break;
+                case 'w':
+                    player.velocity.y = -20
+                    break;
+                case ' ':
+                    player.attack()
+                    break;
+                case 'Enter':
+                    enemy.attack()
+                    break;
+                case 'ArrowRight':
+                    keys.ArrowRight.pressed = true
+                    enemy.lastEnemyKey = 'ArrowRight'
+                    break;
+                case 'ArrowLeft':
+                    keys.ArrowLeft.pressed = true
+                    enemy.lastEnemyKey = 'ArrowLeft'
+                    break;
+                case 'ArrowUp':
+                    enemy.velocity.y = -20
+                    break;
+            }
 
         }
 
-    }, [enemy, keys.ArrowLeft, keys.ArrowRight, keys.a, keys.d, player])
+    }, [enemy, keys, player])
 
 
     const keyUp = useCallback((e: any) => {
-        switch (e.key) {
-            case 'd':
-                keys.d.pressed = false
-                break;
-            case 'a':
-                keys.a.pressed = false
-                break;
-            case 'ArrowRight':
-                keys.ArrowRight.pressed = false
-                break;
-            case 'ArrowLeft':
-                keys.ArrowLeft.pressed = false
-                break;
+        if (keys) {
+            switch (e.key) {
+                case 'd':
+                    keys.d.pressed = false
+                    break;
+                case 'a':
+                    keys.a.pressed = false
+                    break;
+                case 'ArrowRight':
+                    keys.ArrowRight.pressed = false
+                    break;
+                case 'ArrowLeft':
+                    keys.ArrowLeft.pressed = false
+                    break;
+            }
         }
-    }, [keys.ArrowLeft, keys.ArrowRight, keys.a, keys.d])
+    }, [keys])
 
     useEffect(() => {
         window.addEventListener('keydown', keyDown)
@@ -281,10 +307,14 @@ const Canvas = () => {
     return (
         <div style={{ position: 'relative', display: 'inline-block' }}>
             <div style={{ position: 'absolute', display: 'flex', width: '100%', alignItems: 'center', padding: '20px' }}>
-                <div style={{ background: 'yellow', width: '100%', height: '30px' }}></div>
-                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0' }}></div>
-                <div style={{position: 'relative', height: '30px', width: '100%'}}>
-                    <HealthBar health={enemyHealth} />
+                <div style={{ position: 'relative', height: '30px', width: '100%' }} >
+                    <HealthBar health={playerHealth} />
+                </div>
+                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0' }}>
+                    {time}
+                </div>
+                <div style={{ position: 'relative', height: '30px', width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                    <HealthBar side={0} health={enemyHealth} />
                 </div>
             </div>
             <canvas
@@ -298,3 +328,5 @@ const Canvas = () => {
 
 
 export default Canvas
+
+
