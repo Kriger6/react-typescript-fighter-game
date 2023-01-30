@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
-import HealthBar from './healt_bar'
+import HealthBar from '../healt_bar'
+// import { something } from '../../constructs'
 
-interface Chars {
+export interface Chars {
     position: { x: number, y: number }
     velocity: { x: number, y: number }
     color: string
     isAttacking: boolean
     offset: { x: number, y: number }
 }
+export const CANVAS_HEIGHT: number = 576
+export const GRAVITY: number = 0.7
 
 interface Keys {
     a: {
@@ -27,11 +30,11 @@ interface Keys {
 const Canvas = () => {
     const [enemyHealth, setEnemyHealth] = useState<number>(100)
     const [playerHealth, setPlayerHealth] = useState<number>(100)
-    const [time, setTime] = useState<number>(10)
+    const [time, setTime] = useState<number>(60)
+    const [gameOverDisplay, setGameOverDisplay] = useState<string>('none')
+    const [gameOver, setGameOver] = useState<string | null>(null)
     const CANVAS_WIDTH: number = 1024
-    const CANVAS_HEIGHT: number = 576
-    const GRAVITY: number = 0.7
-    
+
     const timerRef = useRef<any>()
     const onLoadRef = useRef<boolean>(false)
 
@@ -122,6 +125,21 @@ const Canvas = () => {
         }
     })), [Sprite])
 
+    const enemy = useMemo(() => (new (Sprite as any)({
+        position: {
+            x: 400,
+            y: 100
+        },
+        velocity: {
+            x: 0,
+            y: 0
+        },
+        color: 'blue',
+        offset: {
+            x: -50,
+            y: 0
+        }
+    })), [Sprite])
 
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -144,37 +162,34 @@ const Canvas = () => {
         animate()
     }
 
+    const determineWinner = useCallback(() => {
+        setGameOverDisplay('flex')
+        clearInterval(timerRef.current)
+        if (player.health === enemy.health) {
+            setGameOver('Tie')
+        } else if (player.health > enemy.health) {
+            setGameOver('Player 1 wins!')
+        } else if (enemy.health > player.health) {
+            setGameOver('Player 2 wins!')
+        }
+    }, [enemy.health, player.health])
+
     const updateTime = useCallback(() => {
         if (time > 0) {
             timerRef.current = setInterval(() => {
                 setTime(prevState => prevState - 1)
             }, 1000)
-        } else {
-            clearInterval(timerRef.current)
+        } else if (time === 0) {
+            determineWinner()
         }
-    }, [time])
-    
+    }, [time, determineWinner])
+
     useEffect(() => {
         updateTime()
 
         return () => clearInterval(timerRef.current)
     }, [time, updateTime])
 
-    const enemy = useMemo(() => (new (Sprite as any)({
-        position: {
-            x: 400,
-            y: 100
-        },
-        velocity: {
-            x: 0,
-            y: 0
-        },
-        color: 'blue',
-        offset: {
-            x: -50,
-            y: 0
-        }
-    })), [Sprite])
 
     function rectangularCollision({ rectangle1, rectangle2 }: any) {
         return (rectangle1.attackBox.position.x + rectangle1.attackBox.width >= rectangle2.position.x &&
@@ -232,7 +247,16 @@ const Canvas = () => {
 
         }
 
-
+        // End game based on health
+        if (player.health === 0 || enemy.health === 0) {
+            clearInterval(timerRef.current)
+            setGameOverDisplay('flex')
+            if (player.health === 0) {
+                setGameOver('Player 2 wins!')
+            } else if (enemy.health === 0) {
+                setGameOver('Player 1 wins!')
+            }
+        }
     }
 
 
@@ -310,12 +334,15 @@ const Canvas = () => {
                 <div style={{ position: 'relative', height: '30px', width: '100%' }} >
                     <HealthBar health={playerHealth} />
                 </div>
-                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0' }}>
+                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0', display: 'inherit', justifyContent: 'center', alignItems: 'center' }}>
                     {time}
                 </div>
                 <div style={{ position: 'relative', height: '30px', width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
                     <HealthBar side={0} health={enemyHealth} />
                 </div>
+            </div>
+            <div style={{ display: `${gameOverDisplay}`, justifyContent: 'center', alignItems: 'center', color: 'white', position: 'absolute', width: '100%', height: '100%' }}>
+                {gameOver}
             </div>
             <canvas
                 ref={canvasRef}
