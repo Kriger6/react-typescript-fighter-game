@@ -1,8 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import HealthBar from '../healt_bar'
-// import { something } from '../../constructs'
+import { Sprite, Fighter } from '../../constructs'
 
-export interface Chars {
+export interface SpriteChars {
+    position: { x: number, y: number }
+    imgSrc: string
+}
+
+export interface FighterChars {
     position: { x: number, y: number }
     velocity: { x: number, y: number }
     color: string
@@ -33,6 +38,7 @@ const Canvas = () => {
     const [time, setTime] = useState<number>(60)
     const [gameOverDisplay, setGameOverDisplay] = useState<string>('none')
     const [gameOver, setGameOver] = useState<string | null>(null)
+
     const CANVAS_WIDTH: number = 1024
 
     const timerRef = useRef<any>()
@@ -53,63 +59,15 @@ const Canvas = () => {
         }
     }), [])
 
-    const Sprite = useCallback(function (this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string,): void {
+    const background = new (Sprite as any)({
+        position: {
+            x: 0,
+            y: 0
+        },
+        imgSrc: '../assets/background/background_layer_1.png'
+    })
 
-        this.position = position
-        this.velocity = velocity
-        this.width = 50
-        this.height = 150
-        this.lastKey = lastKey
-        this.attackBox = {
-            position: {
-                x: this.position.x,
-                y: this.position.y
-            },
-            offset,
-            width: 100,
-            height: 50
-        }
-        this.color = color
-        this.isAttacking = isAttacking
-        this.health = 100
-
-        this.draw = () => {
-            if (!contextRef.current) return
-            contextRef.current.fillStyle = this.color
-            contextRef.current.fillRect(this.position.x, this.position.y, this.width, this.height)
-
-            if (this.isAttacking) {
-                contextRef.current.fillStyle = 'green'
-                contextRef.current.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
-            }
-        }
-
-        this.attack = () => {
-            this.isAttacking = true
-            setTimeout(() => {
-                this.isAttacking = false
-            }, 100);
-        }
-
-        this.update = () => {
-            this.draw()
-
-            this.attackBox.position.x = this.position.x + this.attackBox.offset.x
-            this.attackBox.position.y = this.position.y
-
-            this.position.x += this.velocity.x
-            this.position.y += this.velocity.y
-
-
-            if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT) {
-                this.velocity.y = 0
-
-            } else this.velocity.y += GRAVITY
-        }
-
-    }, [])
-
-    const player = useMemo(() => (new (Sprite as any)({
+    const player = useMemo(() => (new (Fighter as any)({
         position: {
             x: 0,
             y: 0
@@ -123,9 +81,9 @@ const Canvas = () => {
             x: 0,
             y: 0
         }
-    })), [Sprite])
+    })), [])
 
-    const enemy = useMemo(() => (new (Sprite as any)({
+    const enemy = useMemo(() => (new (Fighter as any)({
         position: {
             x: 400,
             y: 100
@@ -139,8 +97,7 @@ const Canvas = () => {
             x: -50,
             y: 0
         }
-    })), [Sprite])
-
+    })), [])
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const contextRef = useRef<CanvasRenderingContext2D | null>(null)
@@ -155,7 +112,7 @@ const Canvas = () => {
         const ctx = canvas.getContext('2d')
         ctx?.fillRect(0, 0, canvas?.width, canvas?.height)
         contextRef.current = ctx
-        onLoadRef.current = true
+        onLoadRef.current = true        
     }, [])
 
     if (onLoadRef.current === false) {
@@ -186,9 +143,11 @@ const Canvas = () => {
 
     useEffect(() => {
         updateTime()
+        player.c = contextRef.current
+        enemy.c = contextRef.current
 
         return () => clearInterval(timerRef.current)
-    }, [time, updateTime])
+    }, [time, updateTime, player, enemy])
 
 
     function rectangularCollision({ rectangle1, rectangle2 }: any) {
@@ -205,6 +164,7 @@ const Canvas = () => {
         if (!contextRef.current) return
         contextRef.current.fillStyle = 'black'
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+        background.update()
         player.update()
         enemy.update()
 

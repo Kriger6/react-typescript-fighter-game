@@ -1,6 +1,29 @@
-import { CANVAS_HEIGHT, GRAVITY, Chars } from "../component/canvas"
+import { CANVAS_HEIGHT, GRAVITY, FighterChars, SpriteChars } from "../component/canvas"
 
-export function something(this: any, { position, velocity, color, isAttacking, offset }: Chars, lastKey: string, contextRef: any) {
+export function Sprite(this: any, { position, imgSrc }: SpriteChars, c: CanvasRenderingContext2D) {
+    this.position = position
+    this.width = 50
+    this.height = 150
+    this.c = c
+    this.imgSrc = imgSrc
+    this.image = new Image()
+    this.image.src = imgSrc
+    
+    this.image.onload = function () {
+        console.log("d");
+        
+        this.c.drawImage(this.image, this.position.x, this.position.y)
+    }  
+
+    this.draw = () => {   
+    }
+
+    this.update = () => {                        
+        this.draw()
+    }
+}
+
+export function Fighter(this: any, { position, velocity, color, isAttacking, offset }: FighterChars, lastKey: string, c: CanvasRenderingContext2D) {
     this.position = position
     this.velocity = velocity
     this.width = 50
@@ -18,15 +41,17 @@ export function something(this: any, { position, velocity, color, isAttacking, o
     this.color = color
     this.isAttacking = isAttacking
     this.health = 100
+    this.c = c
 
     this.draw = () => {
-        if (!contextRef.current) return
-        contextRef.current.fillStyle = this.color
-        contextRef.current.fillRect(this.position.x, this.position.y, this.width, this.height)
+
+        if (!this.c) return
+        this.c.fillStyle = this.color
+        this.c.fillRect(this.position.x, this.position.y, this.width, this.height)
 
         if (this.isAttacking) {
-            contextRef.current.fillStyle = 'green'
-            contextRef.current.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
+            this.c.fillStyle = 'green'
+            this.c.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
         }
     }
 
