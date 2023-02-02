@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import HealthBar from '../healt_bar'
 import { Sprite, Fighter } from '../../constructs'
+import background_layer_1 from '../../assets/background/background_layer_1.png'
 
 export interface SpriteChars {
     position: { x: number, y: number }
@@ -59,13 +60,6 @@ const Canvas = () => {
         }
     }), [])
 
-    const background = new (Sprite as any)({
-        position: {
-            x: 0,
-            y: 0
-        },
-        imgSrc: '../assets/background/background_layer_1.png'
-    })
 
     const player = useMemo(() => (new (Fighter as any)({
         position: {
@@ -102,6 +96,14 @@ const Canvas = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const contextRef = useRef<CanvasRenderingContext2D | null>(null)
 
+    const background = useMemo(() => (new (Sprite as any)({
+        position: {
+            x: 0,
+            y: 0
+        },
+        c: canvasRef.current?.getContext('2d')
+    })), [])
+
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) {
@@ -112,7 +114,8 @@ const Canvas = () => {
         const ctx = canvas.getContext('2d')
         ctx?.fillRect(0, 0, canvas?.width, canvas?.height)
         contextRef.current = ctx
-        onLoadRef.current = true        
+        onLoadRef.current = true
+
     }, [])
 
     if (onLoadRef.current === false) {
@@ -143,11 +146,13 @@ const Canvas = () => {
 
     useEffect(() => {
         updateTime()
+        background.c = contextRef.current
+        background.imgSrc = background_layer_1
         player.c = contextRef.current
         enemy.c = contextRef.current
 
         return () => clearInterval(timerRef.current)
-    }, [time, updateTime, player, enemy])
+    }, [time, updateTime, player, enemy, background])
 
 
     function rectangularCollision({ rectangle1, rectangle2 }: any) {

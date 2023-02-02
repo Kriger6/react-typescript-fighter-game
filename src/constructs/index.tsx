@@ -1,29 +1,26 @@
 import { CANVAS_HEIGHT, GRAVITY, FighterChars, SpriteChars } from "../component/canvas"
+import background from '../assets/background/background_layer_1.png'
 
-export function Sprite(this: any, { position, imgSrc }: SpriteChars, c: CanvasRenderingContext2D) {
+export function Sprite(this: any, { position, imgSrc }: SpriteChars) {
     this.position = position
     this.width = 50
     this.height = 150
-    this.c = c
     this.imgSrc = imgSrc
     this.image = new Image()
-    this.image.src = imgSrc
-    
-    this.image.onload = function () {
-        console.log("d");
-        
-        this.c.drawImage(this.image, this.position.x, this.position.y)
-    }  
 
-    this.draw = () => {   
+
+    this.draw = () => {
+        this.c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height)
+        this.image.src = background
     }
 
-    this.update = () => {                        
+    this.update = () => {
         this.draw()
+
     }
 }
 
-export function Fighter(this: any, { position, velocity, color, isAttacking, offset }: FighterChars, lastKey: string, c: CanvasRenderingContext2D) {
+export function Fighter(this: any, { position, velocity, color, isAttacking, offset }: FighterChars, lastKey: string) {
     this.position = position
     this.velocity = velocity
     this.width = 50
@@ -41,7 +38,8 @@ export function Fighter(this: any, { position, velocity, color, isAttacking, off
     this.color = color
     this.isAttacking = isAttacking
     this.health = 100
-    this.c = c
+
+
 
     this.draw = () => {
 
