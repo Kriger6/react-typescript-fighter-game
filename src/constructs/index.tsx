@@ -1,22 +1,40 @@
 import { CANVAS_HEIGHT, GRAVITY, FighterChars, SpriteChars } from "../component/canvas"
-import background from '../assets/background/background_layer_1.png'
-
-export function Sprite(this: any, { position, imgSrc }: SpriteChars) {
+export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1 }: SpriteChars) {
     this.position = position
     this.width = 50
     this.height = 150
     this.imgSrc = imgSrc
-    this.image = new Image()
-
+    this.backgroundLayer = new Image()
+    this.scale = scale
+    this.framesMax = framesMax
+    this.framesCurrent = 0
+    this.framesElapsed = 0
+    this.framesHold = 5
 
     this.draw = () => {
-        this.c.drawImage(this.image, this.position.x, this.position.y, this.width, this.height)
-        this.image.src = background
+        this.c.drawImage(
+            this.backgroundLayer,
+            this.framesCurrent * (this.backgroundLayer.width / this.framesMax),
+            0,
+            this.backgroundLayer.width / this.framesMax,
+            this.backgroundLayer.height,
+            this.position.x,
+            this.position.y,
+            (this.backgroundLayer.width / this.framesMax) * this.scale,
+            this.backgroundLayer.height * this.scale)
+        this.backgroundLayer.src = this.imgSrc
     }
 
     this.update = () => {
+        this.framesElapsed++
+        if (this.framesElapsed % this.framesHold === 0) {
+            if (this.framesCurrent < this.framesMax - 1) {
+                this.framesCurrent++
+            } else {
+                this.framesCurrent = 0
+            }
+        }
         this.draw()
-
     }
 }
 
@@ -39,7 +57,7 @@ export function Fighter(this: any, { position, velocity, color, isAttacking, off
     this.isAttacking = isAttacking
     this.health = 100
 
-
+    
 
     this.draw = () => {
 
@@ -70,7 +88,7 @@ export function Fighter(this: any, { position, velocity, color, isAttacking, off
         this.position.y += this.velocity.y
 
 
-        if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT) {
+        if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT - 97) {
             this.velocity.y = 0
 
         } else this.velocity.y += GRAVITY

@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import HealthBar from '../healt_bar'
 import { Sprite, Fighter } from '../../constructs'
-import background_layer_1 from '../../assets/background/background_layer_1.png'
+import { rectangularCollision, determineWinner, updateTime } from '../../utilities'
+import backgroundLayer from '../../assets/background/background.png'
+import shopLayer from '../../assets/decorations/shop_anim.png'
+
 
 export interface SpriteChars {
     position: { x: number, y: number }
     imgSrc: string
+    scale: number
+    framesMax: number
 }
 
 export interface FighterChars {
@@ -15,6 +20,7 @@ export interface FighterChars {
     isAttacking: boolean
     offset: { x: number, y: number }
 }
+export const CANVAS_WIDTH: number = 1024
 export const CANVAS_HEIGHT: number = 576
 export const GRAVITY: number = 0.7
 
@@ -40,7 +46,6 @@ const Canvas = () => {
     const [gameOverDisplay, setGameOverDisplay] = useState<string>('none')
     const [gameOver, setGameOver] = useState<string | null>(null)
 
-    const CANVAS_WIDTH: number = 1024
 
     const timerRef = useRef<any>()
     const onLoadRef = useRef<boolean>(false)
@@ -60,6 +65,23 @@ const Canvas = () => {
         }
     }), [])
 
+    const shop = useMemo(() => (new (Sprite as any)({
+        position: {
+            x: 650,
+            y: 128
+        },
+        imgSrc: shopLayer,
+        scale: 2.75,
+        framesMax: 6
+    })), [])
+
+    const background = useMemo(() => (new (Sprite as any)({
+        position: {
+            x: 0,
+            y: 0
+        },
+        imgSrc: backgroundLayer
+    })), [])
 
     const player = useMemo(() => (new (Fighter as any)({
         position: {
@@ -96,13 +118,6 @@ const Canvas = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const contextRef = useRef<CanvasRenderingContext2D | null>(null)
 
-    const background = useMemo(() => (new (Sprite as any)({
-        position: {
-            x: 0,
-            y: 0
-        },
-        c: canvasRef.current?.getContext('2d')
-    })), [])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -122,46 +137,16 @@ const Canvas = () => {
         animate()
     }
 
-    const determineWinner = useCallback(() => {
-        setGameOverDisplay('flex')
-        clearInterval(timerRef.current)
-        if (player.health === enemy.health) {
-            setGameOver('Tie')
-        } else if (player.health > enemy.health) {
-            setGameOver('Player 1 wins!')
-        } else if (enemy.health > player.health) {
-            setGameOver('Player 2 wins!')
-        }
-    }, [enemy.health, player.health])
-
-    const updateTime = useCallback(() => {
-        if (time > 0) {
-            timerRef.current = setInterval(() => {
-                setTime(prevState => prevState - 1)
-            }, 1000)
-        } else if (time === 0) {
-            determineWinner()
-        }
-    }, [time, determineWinner])
-
     useEffect(() => {
-        updateTime()
+        updateTime({ time, timerRef, setTime, determineWinner, setGameOverDisplay, player, enemy, setGameOver })
+        let timeRefCopy = timerRef.current
         background.c = contextRef.current
-        background.imgSrc = background_layer_1
+        shop.c = contextRef.current
         player.c = contextRef.current
         enemy.c = contextRef.current
 
-        return () => clearInterval(timerRef.current)
-    }, [time, updateTime, player, enemy, background])
-
-
-    function rectangularCollision({ rectangle1, rectangle2 }: any) {
-        return (rectangle1.attackBox.position.x + rectangle1.attackBox.width >= rectangle2.position.x &&
-            rectangle1.attackBox.position.x <= rectangle2.position.x + rectangle2.width &&
-            rectangle1.attackBox.position.y + rectangle1.attackBox.height >= rectangle2.position.y &&
-            rectangle1.attackBox.position.y <= rectangle2.position.y + rectangle2.height
-        )
-    }
+        return () => clearInterval(timeRefCopy)
+    }, [time, player, enemy, background, shop])
 
 
     function animate() {
@@ -170,6 +155,7 @@ const Canvas = () => {
         contextRef.current.fillStyle = 'black'
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         background.update()
+        shop.update()
         player.update()
         enemy.update()
 
