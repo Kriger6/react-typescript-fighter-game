@@ -4,21 +4,26 @@ import { Sprite, Fighter } from '../../constructs'
 import { rectangularCollision, determineWinner, updateTime } from '../../utilities'
 import backgroundLayer from '../../assets/background/background.png'
 import shopLayer from '../../assets/decorations/shop_anim.png'
+import hero1Idle from '../../assets/character/Martial Hero/Sprites/Idle.png'
+import hero1Run from '../../assets/character/Martial Hero/Sprites/Run.png'
+import hero1Jump from '../../assets/character/Martial Hero/Sprites/Jump.png'
+import hero2Idle from '../../assets/character/Martial Hero 2/Sprites/Idle.png'
 
 
 export interface SpriteChars {
     position: { x: number, y: number }
-    imgSrc: string
+    imgSrc: string | undefined
     scale: number
     framesMax: number
+    offset: {x: number, y: number},
 }
 
 export interface FighterChars {
     position: { x: number, y: number }
     velocity: { x: number, y: number }
     color: string
-    isAttacking: boolean
-    offset: { x: number, y: number }
+    isAttacking: boolean,
+    sprites: any
 }
 export const CANVAS_WIDTH: number = 1024
 export const CANVAS_HEIGHT: number = 576
@@ -84,10 +89,6 @@ const Canvas = () => {
     })), [])
 
     const player = useMemo(() => (new (Fighter as any)({
-        position: {
-            x: 0,
-            y: 0
-        },
         velocity: {
             x: 0,
             y: 0
@@ -96,14 +97,38 @@ const Canvas = () => {
         offset: {
             x: 0,
             y: 0
+        },
+        sprites: {
+            idle: {
+                imgSrc: hero1Idle,
+                framesMax: 8
+            },
+            run: {
+                imgSrc: hero1Run,
+                framesMax: 8
+            },
+            jump: {
+                imgSrc: hero1Jump,
+                framesMax: 2
+            }
+
         }
-    })), [])
+    },
+        {
+            position: {
+                x: 0,
+                y: 0
+            },
+            imgSrc: hero1Idle,
+            framesMax: 8,
+            scale: 2.5,
+            offset: {
+                x: 215,
+                y: 157
+            }
+        })), [])
 
     const enemy = useMemo(() => (new (Fighter as any)({
-        position: {
-            x: 400,
-            y: 100
-        },
         velocity: {
             x: 0,
             y: 0
@@ -112,8 +137,17 @@ const Canvas = () => {
         offset: {
             x: -50,
             y: 0
-        }
-    })), [])
+        },
+        
+    },
+        {
+            position: {
+                x: 0,
+                y: 0
+            },
+            imgSrc: hero2Idle,
+            framesMax: 6
+        })), [])
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const contextRef = useRef<CanvasRenderingContext2D | null>(null)
@@ -157,16 +191,20 @@ const Canvas = () => {
         background.update()
         shop.update()
         player.update()
-        enemy.update()
+        // enemy.update()
 
 
         player.velocity.x = 0
         enemy.velocity.x = 0
 
+        player.switchSprite('idle')
+
         if (keys?.d.pressed === true && player.lastKey === 'd') {
             player.velocity.x = 5
+            player.switchSprite('run')
         } else if (keys?.a.pressed === true && player.lastKey === 'a') {
             player.velocity.x = -5
+            player.switchSprite('run')
         }
 
         if (keys?.ArrowRight.pressed === true && enemy.lastEnemyKey === 'ArrowRight') {
@@ -174,6 +212,10 @@ const Canvas = () => {
         } else if (keys?.ArrowLeft.pressed === true && enemy.lastEnemyKey === 'ArrowLeft') {
             enemy.velocity.x = -5
         }
+
+        if (player.velocity.y < 0) {
+            player.switchSprite('jump')
+        } 
 
         // COLLISION DETECTION
 

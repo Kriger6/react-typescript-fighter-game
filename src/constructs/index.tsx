@@ -1,31 +1,32 @@
 import { CANVAS_HEIGHT, GRAVITY, FighterChars, SpriteChars } from "../component/canvas"
-export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1 }: SpriteChars) {
+export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1, offset = {x: 0, y: 0} }: SpriteChars) {
     this.position = position
     this.width = 50
     this.height = 150
     this.imgSrc = imgSrc
-    this.backgroundLayer = new Image()
+    this.image = new Image()
     this.scale = scale
     this.framesMax = framesMax
     this.framesCurrent = 0
     this.framesElapsed = 0
     this.framesHold = 5
+    this.offset = offset
 
     this.draw = () => {
         this.c.drawImage(
-            this.backgroundLayer,
-            this.framesCurrent * (this.backgroundLayer.width / this.framesMax),
+            this.image,
+            this.framesCurrent * (this.image.width / this.framesMax),
             0,
-            this.backgroundLayer.width / this.framesMax,
-            this.backgroundLayer.height,
-            this.position.x,
-            this.position.y,
-            (this.backgroundLayer.width / this.framesMax) * this.scale,
-            this.backgroundLayer.height * this.scale)
-        this.backgroundLayer.src = this.imgSrc
+            this.image.width / this.framesMax,
+            this.image.height,
+            this.position.x - this.offset.x,
+            this.position.y - this.offset.y,
+            (this.image.width / this.framesMax) * this.scale,
+            this.image.height * this.scale)
+        this.image.src = this.imgSrc
     }
 
-    this.update = () => {
+    this.animateFrames = () => {
         this.framesElapsed++
         if (this.framesElapsed % this.framesHold === 0) {
             if (this.framesCurrent < this.framesMax - 1) {
@@ -34,20 +35,29 @@ export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1 }
                 this.framesCurrent = 0
             }
         }
+    }
+
+    this.update = () => {
         this.draw()
+        this.animateFrames()
     }
 }
 
-export function Fighter(this: any, { position, velocity, color, isAttacking, offset }: FighterChars, lastKey: string) {
-    this.position = position
+Sprite.prototype = {
+}
+
+export function Fighter(this: any,
+    { velocity, color, isAttacking, sprites}: FighterChars,
+    { position, imgSrc, scale = 1, framesMax = 1, offset = {x: 0, y: 0} }: SpriteChars,
+    lastKey: string) {
     this.velocity = velocity
     this.width = 50
     this.height = 150
     this.lastKey = lastKey
     this.attackBox = {
         position: {
-            x: this.position.x,
-            y: this.position.y
+            x: position.x,
+            y: position.y
         },
         offset,
         width: 100,
@@ -56,20 +66,19 @@ export function Fighter(this: any, { position, velocity, color, isAttacking, off
     this.color = color
     this.isAttacking = isAttacking
     this.health = 100
+    this.framesCurrent = 0
+    this.framesElapsed = 0
+    this.framesHold = 5
+    this.sprites = sprites
 
-    
-
-    this.draw = () => {
-
-        if (!this.c) return
-        this.c.fillStyle = this.color
-        this.c.fillRect(this.position.x, this.position.y, this.width, this.height)
-
-        if (this.isAttacking) {
-            this.c.fillStyle = 'green'
-            this.c.fillRect(this.attackBox.position.x, this.attackBox.position.y, this.attackBox.width, this.attackBox.height)
-        }
+    for (const sprite in this.sprites) {
+        sprites[sprite].image = new Image()
+        sprites[sprite].image.src = sprites[sprite].imgSrc 
     }
+
+
+    Sprite.call(this, { position, imgSrc, scale, framesMax, offset })
+    
 
     this.attack = () => {
         this.isAttacking = true
@@ -78,8 +87,31 @@ export function Fighter(this: any, { position, velocity, color, isAttacking, off
         }, 100);
     }
 
+    this.switchSprite = (sprite: any) => {
+        switch(sprite) {
+            case 'idle':
+                if (this.image.src !== this.sprites.idle.imgSrc ) {
+                    this.image.src = this.sprites.idle.imgSrc
+                    this.framesMax = this.sprites.idle.framesMax
+                }
+                break;
+            case 'run':
+                if (this.image.src !== this.sprites.run.imgSrc) {
+                    this.image.src = this.sprites.run.imgSrc
+                }
+                break;
+            case 'jump':
+                if (this.image.src !== this.sprites.jump.imgSrc) {
+                    this.image.src = this.sprites.jump.imgSrc
+                    this.framesMax = this.sprites.jump.framesMax
+                }
+                break;
+        }
+    }
+
     this.update = () => {
         this.draw()
+        this.animateFrames()
 
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x
         this.attackBox.position.y = this.position.y
