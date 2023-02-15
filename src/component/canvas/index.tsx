@@ -7,7 +7,13 @@ import shopLayer from '../../assets/decorations/shop_anim.png'
 import hero1Idle from '../../assets/character/Martial Hero/Sprites/Idle.png'
 import hero1Run from '../../assets/character/Martial Hero/Sprites/Run.png'
 import hero1Jump from '../../assets/character/Martial Hero/Sprites/Jump.png'
+import hero1Fall from '../../assets/character/Martial Hero/Sprites/Fall.png'
+import hero1Attack1 from '../../assets/character/Martial Hero/Sprites/Attack1.png'
 import hero2Idle from '../../assets/character/Martial Hero 2/Sprites/Idle.png'
+import hero2Run from '../../assets/character/Martial Hero 2/Sprites/Run.png'
+import hero2Jump from '../../assets/character/Martial Hero 2/Sprites/Jump.png'
+import hero2Fall from '../../assets/character/Martial Hero 2/Sprites/Fall.png'
+import hero2Attack1 from '../../assets/character/Martial Hero 2/Sprites/Attack1.png'
 
 
 export interface SpriteChars {
@@ -110,6 +116,14 @@ const Canvas = () => {
             jump: {
                 imgSrc: hero1Jump,
                 framesMax: 2
+            },
+            fall: {
+                imgSrc: hero1Fall,
+                framesMax: 2
+            },
+            attack1: {
+                imgSrc: hero1Attack1,
+                framesMax: 6
             }
 
         }
@@ -138,15 +152,42 @@ const Canvas = () => {
             x: -50,
             y: 0
         },
-        
+        sprites: {
+            idle: {
+                imgSrc: hero2Idle,
+                framesMax: 4
+            },
+            run: {
+                imgSrc: hero2Run,
+                framesMax: 8
+            },
+            jump: {
+                imgSrc: hero2Jump,
+                framesMax: 2
+            },
+            fall: {
+                imgSrc: hero2Fall,
+                framesMax: 2
+            },
+            attack1: {
+                imgSrc: hero2Attack1,
+                framesMax: 4
+            }
+
+        }
     },
         {
             position: {
-                x: 0,
+                x: 500,
                 y: 0
             },
             imgSrc: hero2Idle,
-            framesMax: 6
+            framesMax: 4,
+            scale: 2.5,
+            offset: {
+                x: 215,
+                y: 167
+            }
         })), [])
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -191,31 +232,44 @@ const Canvas = () => {
         background.update()
         shop.update()
         player.update()
-        // enemy.update()
+        enemy.update()
 
 
         player.velocity.x = 0
         enemy.velocity.x = 0
-
-        player.switchSprite('idle')
-
+        
         if (keys?.d.pressed === true && player.lastKey === 'd') {
             player.velocity.x = 5
             player.switchSprite('run')
         } else if (keys?.a.pressed === true && player.lastKey === 'a') {
             player.velocity.x = -5
             player.switchSprite('run')
+        } else if (player.position.y === 330) {
+            player.switchSprite('idle')
         }
 
         if (keys?.ArrowRight.pressed === true && enemy.lastEnemyKey === 'ArrowRight') {
             enemy.velocity.x = 5
+            enemy.switchSprite('run')
         } else if (keys?.ArrowLeft.pressed === true && enemy.lastEnemyKey === 'ArrowLeft') {
             enemy.velocity.x = -5
+            enemy.switchSprite('run')
+        } else if (enemy.position.y === 330) {
+            enemy.switchSprite('idle')
         }
 
         if (player.velocity.y < 0) {
             player.switchSprite('jump')
-        } 
+        } else if (player.velocity.y > 0) {
+            player.switchSprite('fall')
+        }
+
+        if (enemy.velocity.y < 0) {
+            enemy.switchSprite('jump')
+        } else if (enemy.velocity.y > 0) {
+            enemy.switchSprite('fall')
+        }
+
 
         // COLLISION DETECTION
 

@@ -1,5 +1,5 @@
 import { CANVAS_HEIGHT, GRAVITY, FighterChars, SpriteChars } from "../component/canvas"
-export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1, offset = {x: 0, y: 0} }: SpriteChars) {
+export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }: SpriteChars) {
     this.position = position
     this.width = 50
     this.height = 150
@@ -23,8 +23,8 @@ export function Sprite(this: any, { position, imgSrc, scale = 1, framesMax = 1, 
             this.position.y - this.offset.y,
             (this.image.width / this.framesMax) * this.scale,
             this.image.height * this.scale)
-        this.image.src = this.imgSrc
     }
+    this.image.src = this.imgSrc
 
     this.animateFrames = () => {
         this.framesElapsed++
@@ -47,8 +47,8 @@ Sprite.prototype = {
 }
 
 export function Fighter(this: any,
-    { velocity, color, isAttacking, sprites}: FighterChars,
-    { position, imgSrc, scale = 1, framesMax = 1, offset = {x: 0, y: 0} }: SpriteChars,
+    { velocity, color, isAttacking, sprites }: FighterChars,
+    { position, imgSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }: SpriteChars,
     lastKey: string) {
     this.velocity = velocity
     this.width = 50
@@ -73,14 +73,15 @@ export function Fighter(this: any,
 
     for (const sprite in this.sprites) {
         sprites[sprite].image = new Image()
-        sprites[sprite].image.src = sprites[sprite].imgSrc 
+        sprites[sprite].image.src = sprites[sprite].imgSrc
     }
 
 
     Sprite.call(this, { position, imgSrc, scale, framesMax, offset })
-    
+
 
     this.attack = () => {
+        this.switchSprite('attack1')
         this.isAttacking = true
         setTimeout(() => {
             this.isAttacking = false
@@ -88,22 +89,45 @@ export function Fighter(this: any,
     }
 
     this.switchSprite = (sprite: any) => {
-        switch(sprite) {
+        if (this.image.src === this.sprites.attack1.imgSrc && this.framesCurrent < this.sprites.attack1.framesMax - 1) return
+        switch (sprite) {
             case 'idle':
-                if (this.image.src !== this.sprites.idle.imgSrc ) {
+                if (this.image.src !== this.sprites.idle.imgSrc) {
                     this.image.src = this.sprites.idle.imgSrc
                     this.framesMax = this.sprites.idle.framesMax
+                    this.framesCurrent = 0
                 }
                 break;
             case 'run':
-                if (this.image.src !== this.sprites.run.imgSrc) {
+                if ((this.image.src !== this.sprites.run.imgSrc 
+                    && this.image.src !== this.sprites.jump.imgSrc
+                    && this.image.src !== this.sprites.fall.imgSrc)
+                    ||
+                    (this.position.y === 330 && this.image.src !== this.sprites.run.imgSrc)) {
                     this.image.src = this.sprites.run.imgSrc
+                    this.framesMax = this.sprites.run.framesMax
+                    this.framesCurrent = 0
                 }
                 break;
             case 'jump':
                 if (this.image.src !== this.sprites.jump.imgSrc) {
                     this.image.src = this.sprites.jump.imgSrc
                     this.framesMax = this.sprites.jump.framesMax
+                    this.framesCurrent = 0
+                }
+                break;
+            case 'fall':
+                if (this.image.src !== this.sprites.fall.imgSrc && this.position.y !== 330) {
+                    this.image.src = this.sprites.fall.imgSrc
+                    this.framesMax = this.sprites.fall.framesMax
+                    this.framesCurrent = 0
+                }
+                break;
+            case 'attack1':
+                if (this.image.src !== this.sprites.attack1.imgSrc) {
+                    this.image.src = this.sprites.attack1.imgSrc
+                    this.framesMax = this.sprites.attack1.framesMax
+                    this.framesCurrent = 0
                 }
                 break;
         }
@@ -122,6 +146,7 @@ export function Fighter(this: any,
 
         if (this.position.y + this.height + this.velocity.y >= CANVAS_HEIGHT - 97) {
             this.velocity.y = 0
+            this.position.y = 330
 
         } else this.velocity.y += GRAVITY
     }
