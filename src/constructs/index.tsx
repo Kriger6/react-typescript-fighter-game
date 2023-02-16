@@ -47,7 +47,7 @@ Sprite.prototype = {
 }
 
 export function Fighter(this: any,
-    { velocity, color, isAttacking, sprites }: FighterChars,
+    { velocity, color, isAttacking, sprites, attackBox = { offset: {x: 0, y: 0}, width: undefined, height: undefined } }: FighterChars,
     { position, imgSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }: SpriteChars,
     lastKey: string) {
     this.velocity = velocity
@@ -59,9 +59,9 @@ export function Fighter(this: any,
             x: position.x,
             y: position.y
         },
-        offset,
-        width: 100,
-        height: 50
+        offset: {x: attackBox.offset.x, y: attackBox.offset.y},
+        width: attackBox.width,
+        height: attackBox.height
     }
     this.color = color
     this.isAttacking = isAttacking
@@ -70,6 +70,7 @@ export function Fighter(this: any,
     this.framesElapsed = 0
     this.framesHold = 5
     this.sprites = sprites
+    this.dead = false
 
     for (const sprite in this.sprites) {
         sprites[sprite].image = new Image()
@@ -83,12 +84,27 @@ export function Fighter(this: any,
     this.attack = () => {
         this.switchSprite('attack1')
         this.isAttacking = true
-        setTimeout(() => {
-            this.isAttacking = false
-        }, 100);
+    }
+
+    this.takesHit = () => {
+        this.health -= 20
+        if (this.health <= 0) {
+            this.switchSprite('death')
+        } else {
+            this.switchSprite('takesHit')
+        }
     }
 
     this.switchSprite = (sprite: any) => {
+        if (this.image.src === this.sprites.death.imgSrc) {
+            if (this.framesCurrent === this.sprites.death.framesMax - 1) {
+                this.dead = true
+            }
+            return  
+        } 
+
+        if (this.image.src === this.sprites.takesHit.imgSrc && this.framesCurrent < this.sprites.takesHit.framesMax - 1) return
+
         if (this.image.src === this.sprites.attack1.imgSrc && this.framesCurrent < this.sprites.attack1.framesMax - 1) return
         switch (sprite) {
             case 'idle':
@@ -99,7 +115,7 @@ export function Fighter(this: any,
                 }
                 break;
             case 'run':
-                if ((this.image.src !== this.sprites.run.imgSrc 
+                if ((this.image.src !== this.sprites.run.imgSrc
                     && this.image.src !== this.sprites.jump.imgSrc
                     && this.image.src !== this.sprites.fall.imgSrc)
                     ||
@@ -130,15 +146,33 @@ export function Fighter(this: any,
                     this.framesCurrent = 0
                 }
                 break;
+            case 'takesHit':
+                if (this.image.src !== this.sprites.takesHit.imgSrc) {
+                    this.image.src = this.sprites.takesHit.imgSrc
+                    this.framesMax = this.sprites.takesHit.framesMax
+                    this.framesCurrent = 0
+                }
+                break;
+            case 'death':
+                if (this.image.src !== this.sprites.death.imgSrc) {
+                    this.image.src = this.sprites.death.imgSrc
+                    this.framesMax = this.sprites.death.framesMax
+                    this.framesCurrent = 0
+                }
+                break;
         }
     }
 
     this.update = () => {
         this.draw()
-        this.animateFrames()
+
+        if (this.dead !== true) {
+            this.animateFrames()
+        }
+
 
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x
-        this.attackBox.position.y = this.position.y
+        this.attackBox.position.y = this.position.y + this.attackBox.offset.y
 
         this.position.x += this.velocity.x
         this.position.y += this.velocity.y

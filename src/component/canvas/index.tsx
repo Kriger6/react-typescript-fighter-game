@@ -9,11 +9,16 @@ import hero1Run from '../../assets/character/Martial Hero/Sprites/Run.png'
 import hero1Jump from '../../assets/character/Martial Hero/Sprites/Jump.png'
 import hero1Fall from '../../assets/character/Martial Hero/Sprites/Fall.png'
 import hero1Attack1 from '../../assets/character/Martial Hero/Sprites/Attack1.png'
+import hero1TakesHit from '../../assets/character/Martial Hero/Sprites/Take Hit.png'
+import hero1Death from '../../assets/character/Martial Hero/Sprites/Death.png'
 import hero2Idle from '../../assets/character/Martial Hero 2/Sprites/Idle.png'
 import hero2Run from '../../assets/character/Martial Hero 2/Sprites/Run.png'
 import hero2Jump from '../../assets/character/Martial Hero 2/Sprites/Jump.png'
 import hero2Fall from '../../assets/character/Martial Hero 2/Sprites/Fall.png'
 import hero2Attack1 from '../../assets/character/Martial Hero 2/Sprites/Attack1.png'
+import hero2TakesHit from '../../assets/character/Martial Hero 2/Sprites/Take hit.png'
+import hero2Death from '../../assets/character/Martial Hero 2/Sprites/Death.png'
+import { gsap } from 'gsap'
 
 
 export interface SpriteChars {
@@ -21,7 +26,7 @@ export interface SpriteChars {
     imgSrc: string | undefined
     scale: number
     framesMax: number
-    offset: {x: number, y: number},
+    offset: { x: number, y: number },
 }
 
 export interface FighterChars {
@@ -29,7 +34,8 @@ export interface FighterChars {
     velocity: { x: number, y: number }
     color: string
     isAttacking: boolean,
-    sprites: any
+    sprites: any,
+    attackBox: { offset: { x: number, y: number }, width: number | undefined, height: number | undefined }
 }
 export const CANVAS_WIDTH: number = 1024
 export const CANVAS_HEIGHT: number = 576
@@ -124,8 +130,23 @@ const Canvas = () => {
             attack1: {
                 imgSrc: hero1Attack1,
                 framesMax: 6
+            },
+            takesHit: {
+                imgSrc: hero1TakesHit,
+                framesMax: 4
+            },
+            death: {
+                imgSrc: hero1Death,
+                framesMax: 6
             }
-
+        },
+        attackBox: {
+            offset: {
+                x: 100,
+                y: 50
+            },
+            width: 155,
+            height: 50
         }
     },
         {
@@ -172,8 +193,23 @@ const Canvas = () => {
             attack1: {
                 imgSrc: hero2Attack1,
                 framesMax: 4
+            },
+            takesHit: {
+                imgSrc: hero2TakesHit,
+                framesMax: 3
+            },
+            death: {
+                imgSrc: hero2Death,
+                framesMax: 7
             }
-
+        },
+        attackBox: {
+            offset: {
+                x: -170,
+                y: 50
+            },
+            width: 150,
+            height: 50
         }
     },
         {
@@ -231,13 +267,15 @@ const Canvas = () => {
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         background.update()
         shop.update()
+        contextRef.current.fillStyle = `rgba(255,255,255, 0.1)`
+        contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         player.update()
         enemy.update()
 
 
         player.velocity.x = 0
         enemy.velocity.x = 0
-        
+
         if (keys?.d.pressed === true && player.lastKey === 'd') {
             player.velocity.x = 5
             player.switchSprite('run')
@@ -277,21 +315,27 @@ const Canvas = () => {
             rectangle1: player,
             rectangle2: enemy
         }) &&
-            player.isAttacking) {
+            player.isAttacking && player.framesCurrent === 4) {
+            enemy.takesHit()
             player.isAttacking = false
-            enemy.health -= 20
             setEnemyHealth(prevState => prevState - 20)
-
         }
         if (rectangularCollision({
             rectangle1: enemy,
             rectangle2: player
         }) &&
-            enemy.isAttacking) {
+            enemy.isAttacking && enemy.framesCurrent === 2) {
+            player.takesHit()
             enemy.isAttacking = false
-            player.health -= 20
             setPlayerHealth(prevState => prevState - 20)
 
+        }
+
+        if (player.isAttacking && player.framesCurrent === 4) {
+            player.isAttacking = false
+        }
+        if (enemy.isAttacking && enemy.framesCurrent === 2) {
+            enemy.isAttacking = false
         }
 
         // End game based on health
@@ -310,35 +354,37 @@ const Canvas = () => {
 
     const keyDown = useCallback((e: any) => {
         if (keys) {
-            switch (e.key) {
-                case 'd':
-                    keys.d.pressed = true
-                    player.lastKey = 'd'
-                    break;
-                case 'a':
-                    keys.a.pressed = true
-                    player.lastKey = 'a'
-                    break;
-                case 'w':
-                    player.velocity.y = -20
-                    break;
-                case ' ':
-                    player.attack()
-                    break;
-                case 'Enter':
-                    enemy.attack()
-                    break;
-                case 'ArrowRight':
-                    keys.ArrowRight.pressed = true
-                    enemy.lastEnemyKey = 'ArrowRight'
-                    break;
-                case 'ArrowLeft':
-                    keys.ArrowLeft.pressed = true
-                    enemy.lastEnemyKey = 'ArrowLeft'
-                    break;
-                case 'ArrowUp':
-                    enemy.velocity.y = -20
-                    break;
+            if (player.dead !== true && enemy.dead !== true) {
+                switch (e.key) {
+                    case 'd':
+                        keys.d.pressed = true
+                        player.lastKey = 'd'
+                        break;
+                    case 'a':
+                        keys.a.pressed = true
+                        player.lastKey = 'a'
+                        break;
+                    case 'w':
+                        player.velocity.y = -20
+                        break;
+                    case ' ':
+                        player.attack()
+                        break;
+                    case 'Enter':
+                        enemy.attack()
+                        break;
+                    case 'ArrowRight':
+                        keys.ArrowRight.pressed = true
+                        enemy.lastEnemyKey = 'ArrowRight'
+                        break;
+                    case 'ArrowLeft':
+                        keys.ArrowLeft.pressed = true
+                        enemy.lastEnemyKey = 'ArrowLeft'
+                        break;
+                    case 'ArrowUp':
+                        enemy.velocity.y = -20
+                        break;
+                }
             }
 
         }
@@ -378,13 +424,13 @@ const Canvas = () => {
     return (
         <div style={{ position: 'relative', display: 'inline-block' }}>
             <div style={{ position: 'absolute', display: 'flex', width: '100%', alignItems: 'center', padding: '20px' }}>
-                <div style={{ position: 'relative', height: '30px', width: '100%' }} >
+                <div style={{ position: 'relative', width: '100%', borderWidth: '3px 0px 3px 3px', borderStyle: 'solid', borderColor: 'white' }} >
                     <HealthBar health={playerHealth} />
                 </div>
-                <div style={{ background: 'red', width: '100px', height: '100px', flexShrink: '0', display: 'inherit', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ border: '3px solid white', color: 'white', background: 'black', width: '100px', height: '50px', flexShrink: '0', display: 'inherit', justifyContent: 'center', alignItems: 'center' }}>
                     {time}
                 </div>
-                <div style={{ position: 'relative', height: '30px', width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'flex-end', borderWidth: '3px 3px 3px 0px', borderStyle: 'solid', borderColor: 'white' }}>
                     <HealthBar side={0} health={enemyHealth} />
                 </div>
             </div>
