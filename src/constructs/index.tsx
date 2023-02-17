@@ -171,6 +171,7 @@ export function Fighter(this: any,
         }
 
 
+
         this.attackBox.position.x = this.position.x + this.attackBox.offset.x
         this.attackBox.position.y = this.position.y + this.attackBox.offset.y
 

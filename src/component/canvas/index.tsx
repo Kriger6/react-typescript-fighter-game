@@ -18,7 +18,6 @@ import hero2Fall from '../../assets/character/Martial Hero 2/Sprites/Fall.png'
 import hero2Attack1 from '../../assets/character/Martial Hero 2/Sprites/Attack1.png'
 import hero2TakesHit from '../../assets/character/Martial Hero 2/Sprites/Take hit.png'
 import hero2Death from '../../assets/character/Martial Hero 2/Sprites/Death.png'
-import { gsap } from 'gsap'
 
 
 export interface SpriteChars {
@@ -151,7 +150,7 @@ const Canvas = () => {
     },
         {
             position: {
-                x: 0,
+                x: 100,
                 y: 0
             },
             imgSrc: hero1Idle,
@@ -214,7 +213,7 @@ const Canvas = () => {
     },
         {
             position: {
-                x: 500,
+                x: 800,
                 y: 0
             },
             imgSrc: hero2Idle,
@@ -222,7 +221,7 @@ const Canvas = () => {
             scale: 2.5,
             offset: {
                 x: 215,
-                y: 167
+                y: 170
             }
         })), [])
 
@@ -262,6 +261,10 @@ const Canvas = () => {
 
     function animate() {
         requestAnimationFrame(animate)
+        // if (player.image.src === player.sprites.death.imgSrc || enemy.image.src === enemy.sprites.death.imgSrc) {
+        //     Object.keys(keys).forEach((key) => Object.keys(key).forEach((x, i) => console.log(x)
+        //     ))
+        // }
         if (!contextRef.current) return
         contextRef.current.fillStyle = 'black'
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -354,7 +357,7 @@ const Canvas = () => {
 
     const keyDown = useCallback((e: any) => {
         if (keys) {
-            if (player.dead !== true && enemy.dead !== true) {
+            if (player.image.src !== player.sprites.death.imgSrc && enemy.image.src !== enemy.sprites.death.imgSrc) {
                 switch (e.key) {
                     case 'd':
                         keys.d.pressed = true
@@ -365,13 +368,19 @@ const Canvas = () => {
                         player.lastKey = 'a'
                         break;
                     case 'w':
-                        player.velocity.y = -20
+                        if (player.image.src !== player.sprites.jump.imgSrc && player.image.src !== player.sprites.fall.imgSrc) {
+                            player.velocity.y = -20
+                        }
                         break;
                     case ' ':
-                        player.attack()
+                        if (player.image.src !== player.sprites.attack1.imgSrc && player.image.src !== player.sprites.takesHit.imgSrc) {
+                            player.attack()
+                        }
                         break;
                     case 'Enter':
-                        enemy.attack()
+                        if (enemy.image.src !== enemy.sprites.attack1.imgSrc && enemy.image.src !== enemy.sprites.takesHit.imgSrc) {
+                            enemy.attack()
+                        }
                         break;
                     case 'ArrowRight':
                         keys.ArrowRight.pressed = true
@@ -382,7 +391,9 @@ const Canvas = () => {
                         enemy.lastEnemyKey = 'ArrowLeft'
                         break;
                     case 'ArrowUp':
-                        enemy.velocity.y = -20
+                        if (enemy.image.src !== enemy.sprites.jump.imgSrc && enemy.image.src !== enemy.sprites.fall.imgSrc) {
+                            enemy.velocity.y = -20
+                        }
                         break;
                 }
             }
