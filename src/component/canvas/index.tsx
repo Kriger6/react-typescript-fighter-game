@@ -259,12 +259,18 @@ const Canvas = () => {
     }, [time, player, enemy, background, shop])
 
 
+    const isAnyKeyTrue = (): boolean => {
+        let isKeyPressed: {pressed: boolean} = Object.values(keys).find(x => { return x.pressed === true ? true : false })
+
+        return isKeyPressed?.pressed
+    }
+
+
     function animate() {
         requestAnimationFrame(animate)
-        // if (player.image.src === player.sprites.death.imgSrc || enemy.image.src === enemy.sprites.death.imgSrc) {
-        //     Object.keys(keys).forEach((key) => Object.keys(key).forEach((x, i) => console.log(x)
-        //     ))
-        // }
+        if ((player.image.src === player.sprites.death.imgSrc || enemy.image.src === enemy.sprites.death.imgSrc) && isAnyKeyTrue() === true) {
+            Object.values(keys).forEach(x => x.pressed = false)
+        }
         if (!contextRef.current) return
         contextRef.current.fillStyle = 'black'
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
