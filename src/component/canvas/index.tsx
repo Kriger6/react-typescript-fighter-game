@@ -244,7 +244,9 @@ const Canvas = () => {
     }, [])
 
     if (onLoadRef.current === false) {
-        animate()
+        setTimeout(() => {
+            animate()
+        }, 0)
     }
 
     useEffect(() => {
@@ -268,9 +270,11 @@ const Canvas = () => {
 
     function animate() {
         requestAnimationFrame(animate)
-        if ((player.image.src === player.sprites.death.imgSrc || enemy.image.src === enemy.sprites.death.imgSrc) && isAnyKeyTrue() === true) {
-            Object.values(keys).forEach(x => x.pressed = false)
-        }
+        setTimeout(() => {
+            if ((player.image.src === player.sprites.death.imgSrc || enemy.image.src === enemy.sprites.death.imgSrc) && isAnyKeyTrue() === true) {
+                Object.values(keys).forEach(x => x.pressed = false)
+            }
+        }, 0)
         if (!contextRef.current) return
         contextRef.current.fillStyle = 'black'
         contextRef.current.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -429,13 +433,13 @@ const Canvas = () => {
     }, [keys])
 
     useEffect(() => {
-        window.addEventListener('keydown', keyDown)
-        window.addEventListener('keyup', keyUp)
+        // window.addEventListener('keydown', keyDown)
+        // window.addEventListener('keyup', keyUp)
 
-        return () => {
-            window.removeEventListener('keydown', keyDown)
-            window.removeEventListener('keyup', keyUp)
-        }
+        // return () => {
+        //     window.removeEventListener('keydown', keyDown)
+        //     window.removeEventListener('keyup', keyUp)
+        // }
     }, [keyDown, keyUp])
 
     return (
